@@ -21,6 +21,14 @@ let isCodeGenOnly=1 in {
 def UNKNOWN_type
     : UnknownOp<(outs TYPE:$type), (ins i32imm:$opcode, variable_ops), " ">;
 
+def UNKNOWN_instruction:
+ UnknownOp<(outs ID:$dst_id), (ins TYPE:$src_ty, i32imm:$opcode, variable_ops),
+                  "$dst_id = !$opcode $src_ty">;
+
+def UNKNOWN_instruction:
+ UnknownOp<(outs ID:$dst_id), (ins TYPE:$src_ty, i32imm:$opcode, variable_ops),
+                  "$dst_id = !$opcode $src_ty">;
+
 def SPVTypeBin : SDTypeProfile<1, 2, []>;
 
 def assigntype : SDNode<"SPIRVISD::AssignType", SPVTypeBin>;
