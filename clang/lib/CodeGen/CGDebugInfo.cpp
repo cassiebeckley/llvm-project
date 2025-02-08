@@ -3504,6 +3504,12 @@ llvm::DIType *CGDebugInfo::CreateType(const HLSLAttributedResourceType *Ty,
   return getOrCreateType(Ty->getWrappedType(), U);
 }
 
+llvm::DIType *CGDebugInfo::CreateType(const HLSLInlineSpirvType *Ty,
+                                      llvm::DIFile *U) {
+  llvm_unreachable(
+      "TODO: handle this. probably look at how VectorType is handled?");
+}
+
 llvm::DIType *CGDebugInfo::CreateEnumType(const EnumType *Ty) {
   const EnumDecl *ED = Ty->getDecl();
 
@@ -3848,6 +3854,8 @@ llvm::DIType *CGDebugInfo::CreateTypeNode(QualType Ty, llvm::DIFile *Unit) {
     return CreateType(cast<TemplateSpecializationType>(Ty), Unit);
   case Type::HLSLAttributedResource:
     return CreateType(cast<HLSLAttributedResourceType>(Ty), Unit);
+  case Type::HLSLInlineSpirv:
+    return CreateType(cast<HLSLInlineSpirvType>(Ty), Unit);
 
   case Type::CountAttributed:
   case Type::Auto:

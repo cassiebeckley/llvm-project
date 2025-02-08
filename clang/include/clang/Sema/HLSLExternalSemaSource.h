@@ -23,10 +23,12 @@ class Sema;
 class HLSLExternalSemaSource : public ExternalSemaSource {
   Sema *SemaPtr = nullptr;
   NamespaceDecl *HLSLNamespace = nullptr;
+  NamespaceDecl *VKNamespace = nullptr;
 
   using CompletionFunction = std::function<void(CXXRecordDecl *)>;
   llvm::DenseMap<CXXRecordDecl *, CompletionFunction> Completions;
 
+  void defineNamespaces();
   void defineHLSLVectorAlias();
   void defineTrivialHLSLTypes();
   void defineHLSLTypesWithForwardDeclarations();

@@ -108,6 +108,9 @@ GlobalVariable *replaceBuffer(CGHLSLRuntime::Buffer &Buf) {
 llvm::Type *CGHLSLRuntime::convertHLSLSpecificType(const Type *T) {
   assert(T->isHLSLSpecificType() && "Not an HLSL specific type!");
 
+  // TODO: make sure either DirectX backend will never be passed
+  //       HLSLInlineSpirv, or an error is raised in that backend.
+
   // Check if the target has a specific translation for this type first.
   if (llvm::Type *TargetTy = CGM.getTargetCodeGenInfo().getHLSLType(CGM, T))
     return TargetTy;

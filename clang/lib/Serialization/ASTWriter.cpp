@@ -603,6 +603,10 @@ void TypeLocWriter::VisitHLSLAttributedResourceTypeLoc(
   // Nothing to do.
 }
 
+void TypeLocWriter::VisitHLSLInlineSpirvTypeLoc(HLSLInlineSpirvTypeLoc TL) {
+  llvm_unreachable("TODO: probably nothing to do?");
+}
+
 void TypeLocWriter::VisitTemplateTypeParmTypeLoc(TemplateTypeParmTypeLoc TL) {
   addSourceLocation(TL.getNameLoc());
 }
@@ -5549,6 +5553,7 @@ void ASTWriter::PrepareWritingSpecialDecls(Sema &SemaRef) {
   RegisterPredefDecl(Context.TypePackElementDecl,
                      PREDEF_DECL_TYPE_PACK_ELEMENT_ID);
   RegisterPredefDecl(Context.BuiltinCommonTypeDecl, PREDEF_DECL_COMMON_TYPE_ID);
+  RegisterPredefDecl(Context.HLSLSpirvTypeDecl, PREDEF_DECL_HLSL_SPIRV_TYPE_ID);
 
   const TranslationUnitDecl *TU = Context.getTranslationUnitDecl();
 

@@ -7277,6 +7277,10 @@ void TypeLocReader::VisitHLSLAttributedResourceTypeLoc(
   // Nothing to do.
 }
 
+void TypeLocReader::VisitHLSLInlineSpirvTypeLoc(HLSLInlineSpirvTypeLoc TL) {
+  llvm_unreachable("TODO: implement. maybe nothing to do?");
+}
+
 void TypeLocReader::VisitTemplateTypeParmTypeLoc(TemplateTypeParmTypeLoc TL) {
   TL.setNameLoc(readSourceLocation());
 }
@@ -8140,6 +8144,15 @@ Decl *ASTReader::getPredefinedDecl(PredefinedDeclIDs ID) {
     if (Context.BuiltinCommonTypeDecl)
       return Context.BuiltinCommonTypeDecl;
     NewLoaded = Context.getBuiltinCommonTypeDecl();
+    break;
+
+    // TODO: might want to get rid of all this and just define it in the HLSL
+    //       AST builder
+
+  case PREDEF_DECL_HLSL_SPIRV_TYPE_ID:
+    if (Context.HLSLSpirvTypeDecl)
+      return Context.HLSLSpirvTypeDecl;
+    NewLoaded = Context.getHLSLSpirvTypeDecl();
     break;
 
   case NUM_PREDEF_DECL_IDS:
@@ -9754,6 +9767,12 @@ DeclarationNameInfo ASTRecordReader::readDeclarationNameInfo() {
 
 TypeCoupledDeclRefInfo ASTRecordReader::readTypeCoupledDeclRefInfo() {
   return TypeCoupledDeclRefInfo(readDeclAs<ValueDecl>(), readBool());
+}
+
+HLSLInlineSpirvType::SpirvOperand ASTRecordReader::readHLSLSpirvOperand() {
+  return HLSLInlineSpirvType::SpirvOperand(
+      HLSLInlineSpirvType::SpirvOperand::SpirvOperandKind(readInt()),
+      readQualType(), readAPInt());
 }
 
 void ASTRecordReader::readQualifierInfo(QualifierInfo &Info) {

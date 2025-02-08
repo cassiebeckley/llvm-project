@@ -5905,6 +5905,10 @@ namespace {
       Visit(TL.getWrappedLoc());
       fillHLSLAttributedResourceTypeLoc(TL, State);
     }
+    void VisitHLSLInlineSpirvTypeLoc(HLSLInlineSpirvTypeLoc TL) {
+      llvm_unreachable("TODO: visit each operand type loc. probably need to "
+                       "fillHLSLInlineSpirvTypeLoc or something too");
+    }
     void VisitMacroQualifiedTypeLoc(MacroQualifiedTypeLoc TL) {
       Visit(TL.getInnerLoc());
       TL.setExpansionLoc(
@@ -8817,6 +8821,7 @@ static void processTypeAttrs(TypeProcessingState &state, QualType &type,
       attr.setUsedAsTypeAttr();
       break;
     case ParsedAttr::AT_VectorSize:
+      // TODO: maybe handle inline spirv attr here, if one is added?
       HandleVectorSizeAttr(type, attr, state.getSema());
       attr.setUsedAsTypeAttr();
       break;

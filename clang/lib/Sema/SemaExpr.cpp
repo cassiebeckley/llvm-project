@@ -4525,6 +4525,9 @@ static void captureVariablyModifiedType(ASTContext &Context, QualType T,
     case Type::Atomic:
       T = cast<AtomicType>(Ty)->getValueType();
       break;
+
+    case Type::HLSLInlineSpirv:
+      llvm_unreachable("TODO: handle this.");
     }
   } while (!T.isNull() && T->isVariablyModifiedType());
 }

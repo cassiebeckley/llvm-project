@@ -7641,6 +7641,15 @@ QualType TreeTransform<Derived>::TransformHLSLAttributedResourceType(
   return Result;
 }
 
+template <typename Derived>
+QualType TreeTransform<Derived>::TransformHLSLInlineSpirvType(
+    TypeLocBuilder &TLB, HLSLInlineSpirvTypeLoc TL) {
+  // TODO: do we need to do anything if we can assume operands are canonical?
+  llvm_unreachable(
+      "TODO: probably need to call getDerived().TransformType() on each "
+      "operand and then rebuild if any of them are different");
+}
+
 template<typename Derived>
 QualType
 TreeTransform<Derived>::TransformParenType(TypeLocBuilder &TLB,

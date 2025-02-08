@@ -272,7 +272,8 @@ struct TemplateParameterListBuilder {
   ~TemplateParameterListBuilder() { finalizeTemplateArgs(); }
 
   TemplateParameterListBuilder &
-  addTypeParameter(StringRef Name, QualType DefaultValue = QualType()) {
+  addTypeParameter(StringRef Name, QualType DefaultValue = QualType(),
+                   bool ParameterPack = false) {
     assert(!Builder.Record->isCompleteDefinition() &&
            "record is already complete");
     ASTContext &AST = Builder.SemaRef.getASTContext();
@@ -281,8 +282,7 @@ struct TemplateParameterListBuilder {
         AST, Builder.Record->getDeclContext(), SourceLocation(),
         SourceLocation(), /* TemplateDepth */ 0, Position,
         &AST.Idents.get(Name, tok::TokenKind::identifier),
-        /* Typename */ true,
-        /* ParameterPack */ false,
+        /* Typename */ true, ParameterPack,
         /* HasTypeConstraint*/ false);
     if (!DefaultValue.isNull())
       Decl->setDefaultArgument(AST,
@@ -292,6 +292,26 @@ struct TemplateParameterListBuilder {
     Params.emplace_back(Decl);
     return *this;
   }
+
+  // TODO: this is probably unneeded, either remove or refactor all this for
+  //       more generic builder code
+
+  // TemplateParameterListBuilder &addIntegerParameter(StringRef Name,
+  //                                                   QualType Type) {
+  //   // TODO: maybe add default value, in case others need it
+  //   assert(!Builder.Record->isCompleteDefinition() &&
+  //          "record is already complete");
+  //   ASTContext &AST = Builder.SemaRef.getASTContext();
+  //   unsigned Position = static_cast<unsigned>(Params.size());
+  //   auto *Decl = NonTypeTemplateParmDecl::Create(
+  //       AST, Builder.Record->getDeclContext(), SourceLocation(),
+  //       SourceLocation(), /* TemplateDepth */ 0, Position,
+  //       &AST.Idents.get(Name, tok::TokenKind::identifier), Type,
+  //       /* ParameterPack */ false, AST.getTrivialTypeSourceInfo(Type));
+
+  //   Params.emplace_back(Decl);
+  //   return *this;
+  // }
 
   // The concept specialization expression (CSE) constructed in
   // constructConceptSpecializationExpr is constructed so that it
@@ -765,17 +785,7 @@ void HLSLExternalSemaSource::InitializeSema(Sema &S) {
   if (AST.getTranslationUnitDecl()->hasExternalLexicalStorage())
     (void)AST.getTranslationUnitDecl()->decls_begin();
 
-  IdentifierInfo &HLSL = AST.Idents.get("hlsl", tok::TokenKind::identifier);
-  LookupResult Result(S, &HLSL, SourceLocation(), Sema::LookupNamespaceName);
-  NamespaceDecl *PrevDecl = nullptr;
-  if (S.LookupQualifiedName(Result, AST.getTranslationUnitDecl()))
-    PrevDecl = Result.getAsSingle<NamespaceDecl>();
-  HLSLNamespace = NamespaceDecl::Create(
-      AST, AST.getTranslationUnitDecl(), /*Inline=*/false, SourceLocation(),
-      SourceLocation(), &HLSL, PrevDecl, /*Nested=*/false);
-  HLSLNamespace->setImplicit(true);
-  HLSLNamespace->setHasExternalLexicalStorage();
-  AST.getTranslationUnitDecl()->addDecl(HLSLNamespace);
+  defineNamespaces();
 
   // Force external decls in the HLSL namespace to load from the PCH.
   (void)HLSLNamespace->getCanonicalDecl()->decls_begin();
@@ -794,6 +804,39 @@ void HLSLExternalSemaSource::InitializeSema(Sema &S) {
       AST.getTranslationUnitDecl());
 
   AST.getTranslationUnitDecl()->addDecl(UsingDecl);
+}
+
+void HLSLExternalSemaSource::defineNamespaces() {
+  ASTContext &AST = SemaPtr->getASTContext();
+
+  IdentifierInfo &HLSL = AST.Idents.get("hlsl", tok::TokenKind::identifier);
+  LookupResult Result(*SemaPtr, &HLSL, SourceLocation(),
+                      Sema::LookupNamespaceName);
+  NamespaceDecl *PrevDecl = nullptr;
+  if (SemaPtr->LookupQualifiedName(Result, AST.getTranslationUnitDecl()))
+    PrevDecl = Result.getAsSingle<NamespaceDecl>();
+  HLSLNamespace = NamespaceDecl::Create(
+      AST, AST.getTranslationUnitDecl(), /*Inline=*/false, SourceLocation(),
+      SourceLocation(), &HLSL, PrevDecl, /*Nested=*/false);
+  HLSLNamespace->setImplicit(true);
+  HLSLNamespace->setHasExternalLexicalStorage();
+  AST.getTranslationUnitDecl()->addDecl(HLSLNamespace);
+
+  // TODO: don't need VK namespace if we're not declaring anything here
+
+  // Create VK namespace in the HLSL namespace
+  IdentifierInfo &VK = AST.Idents.get("vk", tok::TokenKind::identifier);
+  Result =
+      LookupResult(*SemaPtr, &VK, SourceLocation(), Sema::LookupNamespaceName);
+  PrevDecl = nullptr;
+  if (SemaPtr->LookupQualifiedName(Result, HLSLNamespace))
+    PrevDecl = Result.getAsSingle<NamespaceDecl>();
+  VKNamespace = NamespaceDecl::Create(AST, HLSLNamespace, /*Inline=*/false,
+                                      SourceLocation(), SourceLocation(), &VK,
+                                      PrevDecl, /*Nested=*/false);
+  VKNamespace->setImplicit(true);
+  VKNamespace->setHasExternalLexicalStorage();
+  HLSLNamespace->addDecl(VKNamespace);
 }
 
 void HLSLExternalSemaSource::defineHLSLVectorAlias() {

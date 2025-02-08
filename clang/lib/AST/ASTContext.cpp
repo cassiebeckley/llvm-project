@@ -1218,6 +1218,13 @@ BuiltinTemplateDecl *ASTContext::getBuiltinCommonTypeDecl() const {
   return BuiltinCommonTypeDecl;
 }
 
+BuiltinTemplateDecl *ASTContext::getHLSLSpirvTypeDecl() const {
+  if (!HLSLSpirvTypeDecl)
+    HLSLSpirvTypeDecl =
+        buildBuiltinTemplateDecl(BTK__hlsl_spirv_type, getHLSLSpirvTypeName());
+  return HLSLSpirvTypeDecl;
+}
+
 RecordDecl *ASTContext::buildImplicitRecord(StringRef Name,
                                             RecordDecl::TagKind TK) const {
   SourceLocation Loc;
@@ -2464,6 +2471,17 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
     return getTypeInfo(
         cast<HLSLAttributedResourceType>(T)->getWrappedType().getTypePtr());
 
+  case Type::HLSLInlineSpirv: {
+    const auto *ST = cast<HLSLInlineSpirvType>(T);
+    // TODO: getSize and getAlignment should probably return Optional; handle
+    //       empty case. probably
+    //          Width = Target->getPointerWidth(LangAS::Default);
+    //          Align = Target->getPointerAlign(LangAS::Default);
+    Width = ST->getSize();
+    Width = ST->getAlignment();
+    break;
+  }
+
   case Type::Atomic: {
     // Start with the base type information.
     TypeInfo Info = getTypeInfo(cast<AtomicType>(T)->getValueType());
@@ -3473,6 +3491,8 @@ static void encodeTypeForFunctionPointerAuth(const ASTContext &Ctx,
     return;
   }
   case Type::HLSLAttributedResource:
+  case Type::HLSLInlineSpirv:
+    // TODO: check this assumption for inline spirv
     llvm_unreachable("should never get here");
     break;
   case Type::DeducedTemplateSpecialization:
@@ -4176,6 +4196,7 @@ QualType ASTContext::getVariableArrayDecayedType(QualType type) const {
   case Type::DependentBitInt:
   case Type::ArrayParameter:
   case Type::HLSLAttributedResource:
+  case Type::HLSLInlineSpirv:
     llvm_unreachable("type should never be variably-modified");
 
   // These types can be variably-modified but should never need to
@@ -5428,6 +5449,19 @@ QualType ASTContext::getHLSLAttributedResourceType(
 
   return QualType(Ty, 0);
 }
+
+QualType ASTContext::getHLSLInlineSpirvType(
+    uint32_t Opcode, uint32_t Size, uint32_t Alignment,
+    ArrayRef<HLSLInlineSpirvType::SpirvOperand> Operands) {
+  // TODO: see if dedupe code necessary here (would probably use folding set
+  // thing)
+  auto *newType = new (*this, alignof(HLSLInlineSpirvType))
+      HLSLInlineSpirvType(Opcode, Size, Alignment, Operands);
+  Types.push_back(newType);
+
+  return QualType(newType, 0);
+}
+
 /// Retrieve a substitution-result type.
 QualType ASTContext::getSubstTemplateTypeParmType(
     QualType Replacement, Decl *AssociatedDecl, unsigned Index,
@@ -9299,6 +9333,7 @@ void ASTContext::getObjCEncodingForTypeImpl(QualType T, std::string &S,
     return;
 
   case Type::HLSLAttributedResource:
+  case Type::HLSLInlineSpirv:
     llvm_unreachable("unexpected type");
 
   case Type::ArrayParameter:
@@ -11782,6 +11817,8 @@ QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
       return LHS;
     return {};
   }
+  case Type::HLSLInlineSpirv:
+    llvm_unreachable("TOOD: what even. implement this.");
   }
 
   llvm_unreachable("Invalid Type::Class!");
@@ -13622,6 +13659,7 @@ static QualType getCommonNonSugarTypeNode(ASTContext &Ctx, const Type *X,
     SUGAR_FREE_TYPE(SubstTemplateTypeParmPack)
     SUGAR_FREE_TYPE(UnresolvedUsing)
     SUGAR_FREE_TYPE(HLSLAttributedResource)
+    SUGAR_FREE_TYPE(HLSLInlineSpirv)
 #undef SUGAR_FREE_TYPE
 #define NON_UNIQUE_TYPE(Class) UNEXPECTED_TYPE(Class, "non-unique")
     NON_UNIQUE_TYPE(TypeOfExpr)
@@ -13959,6 +13997,7 @@ static QualType getCommonSugarTypeNode(ASTContext &Ctx, const Type *X,
     CANONICAL_TYPE(FunctionProto)
     CANONICAL_TYPE(IncompleteArray)
     CANONICAL_TYPE(HLSLAttributedResource)
+    CANONICAL_TYPE(HLSLInlineSpirv)
     CANONICAL_TYPE(LValueReference)
     CANONICAL_TYPE(MemberPointer)
     CANONICAL_TYPE(ObjCInterface)

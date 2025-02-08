@@ -2661,6 +2661,7 @@ public:
   bool isHLSLSpecificType() const; // Any HLSL specific type
   bool isHLSLBuiltinIntangibleType() const; // Any HLSL builtin intangible type
   bool isHLSLAttributedResourceType() const;
+  bool isHLSLInlineSpirvType() const;
   bool isHLSLIntangibleType()
       const; // Any HLSL intangible type (builtin, array, class)
 
@@ -6326,6 +6327,108 @@ public:
   findHandleTypeOnResource(const Type *RT);
 };
 
+/// Represents an arbitrary, user-specified SPIR-V type instruction.
+class HLSLInlineSpirvType : public Type {
+  friend class ASTContext; // ASTContext creates these
+
+public:
+  /// Instances of this class represent operands to a SPIR-V type instruction.
+  class SpirvOperand {
+  public:
+    enum SpirvOperandKind : unsigned char {
+      kInvalid,    ///< Uninitialized.
+      kConstantId, ///< Integral value to represent as a SPIR-V OpConstant
+                   ///< instruction ID.
+      kLiteral,    ///< Integral value to represent as an immediate literal.
+      kTypeId,     ///< Type to represent as a SPIR-V type ID.
+    };
+
+  private:
+    SpirvOperandKind Kind = kInvalid;
+
+    QualType ResultType;
+    llvm::APInt Value; // Signedness of constants is represented by ResultType.
+
+  public:
+    SpirvOperand() : Kind(kInvalid), ResultType() {}
+
+    SpirvOperand(SpirvOperandKind Kind, QualType ResultType, llvm::APInt Value)
+        : Kind(Kind), ResultType(ResultType), Value(Value) {}
+
+    SpirvOperand(const SpirvOperand &Other) { *this = Other; }
+    ~SpirvOperand() {}
+
+    SpirvOperand &operator=(const SpirvOperand &Other) {
+      // TODO: make sure this and all the constructors/destructors are still
+      // necessary
+      this->Kind = Other.Kind;
+      this->ResultType = Other.ResultType;
+      this->Value = Other.Value;
+      return *this;
+    }
+
+    SpirvOperandKind getKind() const { return Kind; }
+
+    bool isValid() const { return Kind != kInvalid; }
+    bool isConstant() const { return Kind == kConstantId; }
+    bool isLiteral() const { return Kind == kLiteral; }
+    bool isType() const { return Kind == kTypeId; }
+
+    llvm::APInt getValue() const {
+      assert((isConstant() || isLiteral()) &&
+             "This is not an operand with a value!");
+      return Value;
+    }
+
+    QualType getResultType() const {
+      assert((isConstant() || isType()) &&
+             "This is not an operand with a result type!");
+      return ResultType;
+    }
+
+    static SpirvOperand createConstant(QualType ResultType, llvm::APInt Val) {
+      return SpirvOperand(kConstantId, ResultType, Val);
+    }
+
+    static SpirvOperand createLiteral(uint32_t Bits) {
+      llvm::APSInt Val(32);
+      Val = Bits;
+      return SpirvOperand(kLiteral, QualType(), Val);
+    }
+
+    static SpirvOperand createType(QualType T) {
+      return SpirvOperand(kTypeId, T, llvm::APSInt());
+    }
+  };
+
+private:
+  uint32_t Opcode;
+  uint32_t Size;
+  uint32_t Alignment;
+  ArrayRef<SpirvOperand> Operands;
+
+  // TODO: what happens if any of Operands are dependent??? looks like
+  //       VectorType does handle that, need to check dependence of operands
+  // TODO: with BuiltinTemplateDecl, *probably* never get dependent operands
+  HLSLInlineSpirvType(uint32_t Opcode, uint32_t Size, uint32_t Alignment,
+                      ArrayRef<SpirvOperand> Operands)
+      : Type(HLSLInlineSpirv, QualType(), TypeDependence::None), Opcode(Opcode),
+        Size(Size), Alignment(Alignment), Operands(Operands) {}
+
+public:
+  uint32_t getOpcode() const { return Opcode; }
+  uint32_t getSize() const { return Size; }
+  uint32_t getAlignment() const { return Alignment; }
+  ArrayRef<SpirvOperand> getOperands() const { return Operands; }
+
+  static bool classof(const Type *T) {
+    return T->getTypeClass() == HLSLInlineSpirv;
+  }
+
+  bool isSugared() const { return false; }
+  QualType desugar() const { return QualType(this, 0); }
+};
+
 class TemplateTypeParmType : public Type, public llvm::FoldingSetNode {
   friend class ASTContext; // ASTContext creates these
 
@@ -8471,11 +8574,16 @@ inline bool Type::isHLSLBuiltinIntangibleType() const {
 }
 
 inline bool Type::isHLSLSpecificType() const {
-  return isHLSLBuiltinIntangibleType() || isHLSLAttributedResourceType();
+  return isHLSLBuiltinIntangibleType() || isHLSLAttributedResourceType() ||
+         isHLSLInlineSpirvType();
 }
 
 inline bool Type::isHLSLAttributedResourceType() const {
   return isa<HLSLAttributedResourceType>(this);
+}
+
+inline bool Type::isHLSLInlineSpirvType() const {
+  return isa<HLSLInlineSpirvType>(this);
 }
 
 inline bool Type::isTemplateTypeParmType() const {

@@ -444,6 +444,27 @@ public:
     if (!Contained.isNull())
       Visit(Contained);
   }
+  void VisitHLSLInlineSpirvType(const HLSLInlineSpirvType *T) {
+    for (auto &Operand : T->getOperands()) {
+      using SpirvOperandKind =
+          HLSLInlineSpirvType::SpirvOperand::SpirvOperandKind;
+
+      switch (Operand.getKind()) {
+      case SpirvOperandKind::kConstantId:
+      case SpirvOperandKind::kLiteral:
+        break;
+
+      case SpirvOperandKind::kTypeId:
+        Visit(Operand.getResultType());
+        break;
+
+      default:
+        // TODO: this should be unreachable; how is this being reached? look in
+        // SemaTemplate or wherever the operands are created to figure this out.
+        llvm_unreachable("Invalid SpirvOperand kind!");
+      }
+    }
+  }
   void VisitSubstTemplateTypeParmType(const SubstTemplateTypeParmType *) {}
   void
   VisitSubstTemplateTypeParmPackType(const SubstTemplateTypeParmPackType *T) {

@@ -1696,6 +1696,45 @@ static TemplateParameterList *createBuiltinCommonTypeList(const ASTContext &C,
       nullptr);
 }
 
+static TemplateParameterList *
+createHLSLSpirvTypeParameterList(const ASTContext &C, DeclContext *DC) {
+  // uint32_t Opcode
+  TypeSourceInfo *TInfo = C.getTrivialTypeSourceInfo(C.UnsignedIntTy);
+  auto *Opcode = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/0,
+      /*Id=*/nullptr, TInfo->getType(),
+      /*ParameterPack=*/false, TInfo);
+  Opcode->setImplicit(true);
+
+  // uint32_t Size
+  auto *Size = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/1,
+      /*Id=*/nullptr, TInfo->getType(),
+      /*ParameterPack=*/false, TInfo);
+  Size->setImplicit(true);
+
+  // uint32_t Alignment
+  auto *Alignment = NonTypeTemplateParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/2,
+      /*Id=*/nullptr, TInfo->getType(),
+      /*ParameterPack=*/false, TInfo);
+  Alignment->setImplicit(true);
+
+  // typename ...Operands
+  auto *Operands = TemplateTypeParmDecl::Create(
+      C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/3,
+      /*Id=*/nullptr, /*Typename=*/true, /*ParameterPack=*/true,
+      /*HasTypeConstraint=*/false);
+  Operands->setImplicit(true);
+
+  // template <uint32_t Opcode, uint32_t Size, uint32_t Alignment, typename
+  // ...Operands>
+  NamedDecl *Params[] = {Opcode, Size, Alignment, Operands};
+  return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
+                                       llvm::ArrayRef(Params), SourceLocation(),
+                                       nullptr);
+}
+
 static TemplateParameterList *createBuiltinTemplateParameterList(
     const ASTContext &C, DeclContext *DC, BuiltinTemplateKind BTK) {
   switch (BTK) {
@@ -1705,6 +1744,8 @@ static TemplateParameterList *createBuiltinTemplateParameterList(
     return createTypePackElementParameterList(C, DC);
   case BTK__builtin_common_type:
     return createBuiltinCommonTypeList(C, DC);
+  case BTK__hlsl_spirv_type:
+    return createHLSLSpirvTypeParameterList(C, DC);
   }
 
   llvm_unreachable("unhandled BuiltinTemplateKind!");

@@ -19,6 +19,26 @@
 #include "hlsl/hlsl_basic_types.h"
 #include "hlsl/hlsl_intrinsics.h"
 
+// TODO: put this in a new file
+// TODO: maybe check for spirv flag if exists?
+namespace hlsl {
+namespace vk {
+// template <class T> using Foo = __hlsl_spirv_t;
+// typedef Foo
+template <typename T, T v> struct integral_constant {
+  static constexpr T value = v;
+};
+
+template <typename T> struct Literal {};
+
+template <uint Opcode, uint Size, uint Alignment, typename... Operands>
+using SpirvType = __hlsl_spirv_type<Opcode, Size, Alignment, Operands...>;
+
+template <uint Opcode, typename... Operands>
+using SpirvOpaqueType = __hlsl_spirv_type<Opcode, 0, 0, Operands...>;
+} // namespace vk
+} // namespace hlsl
+
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif

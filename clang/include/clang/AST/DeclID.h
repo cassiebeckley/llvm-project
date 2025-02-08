@@ -86,6 +86,9 @@ enum PredefinedDeclIDs {
   /// The internal '__builtin_common_type' template.
   PREDEF_DECL_COMMON_TYPE_ID,
 
+  /// The internal '__hlsl_spirv_type' template.
+  PREDEF_DECL_HLSL_SPIRV_TYPE_ID,
+
   /// The number of declaration IDs that are predefined.
   NUM_PREDEF_DECL_IDS
 };

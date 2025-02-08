@@ -2442,6 +2442,7 @@ bool CXXNameMangler::mangleUnresolvedTypeOrSimpleId(QualType Ty,
   case Type::Attributed:
   case Type::BTFTagAttributed:
   case Type::HLSLAttributedResource:
+  case Type::HLSLInlineSpirv:
   case Type::Auto:
   case Type::DeducedTemplateSpecialization:
   case Type::PackExpansion:
@@ -4620,6 +4621,11 @@ void CXXNameMangler::mangleType(const HLSLAttributedResourceType *T) {
     mangleType(T->getContainedType());
   }
   mangleType(T->getWrappedType());
+}
+
+void CXXNameMangler::mangleType(const HLSLInlineSpirvType *T) {
+  llvm_unreachable("TODO: figure out how to mangle this. Probably need "
+                   "operand, size, alignment, then mangle each operand.");
 }
 
 void CXXNameMangler::mangleIntegerLiteral(QualType T,

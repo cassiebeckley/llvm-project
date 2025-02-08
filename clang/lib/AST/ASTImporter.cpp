@@ -1836,6 +1836,12 @@ ExpectedType clang::ASTNodeImporter::VisitHLSLAttributedResourceType(
       ToWrappedType, ToContainedType, ToAttrs);
 }
 
+ExpectedType clang::ASTNodeImporter::VisitHLSLInlineSpirvType(
+    const clang::HLSLInlineSpirvType *T) {
+  llvm_unreachable(
+      "TODO: implement this. probably importChecked each operand type");
+}
+
 ExpectedType clang::ASTNodeImporter::VisitConstantMatrixType(
     const clang::ConstantMatrixType *T) {
   ExpectedType ToElementTypeOrErr = import(T->getElementType());
@@ -5473,6 +5479,9 @@ ExpectedDecl ASTNodeImporter::VisitBuiltinTemplateDecl(BuiltinTemplateDecl *D) {
     break;
   case BuiltinTemplateKind::BTK__builtin_common_type:
     ToD = Importer.getToContext().getBuiltinCommonTypeDecl();
+    break;
+  case BuiltinTemplateKind::BTK__hlsl_spirv_type:
+    ToD = Importer.getToContext().getHLSLSpirvTypeDecl();
     break;
   }
   assert(ToD && "BuiltinTemplateDecl of unsupported kind!");

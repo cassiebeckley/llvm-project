@@ -366,11 +366,73 @@ llvm::Type *CommonSPIRTargetCodeGenInfo::getOpenCLType(CodeGenModule &CGM,
 
 llvm::Type *CommonSPIRTargetCodeGenInfo::getHLSLType(CodeGenModule &CGM,
                                                      const Type *Ty) const {
+  llvm::LLVMContext &Ctx = CGM.getLLVMContext();
+
+  if (auto *SpirvType = dyn_cast<HLSLInlineSpirvType>(Ty)) {
+    // TODO: maybe factor this out into a getInlineSpirvType or something?
+    llvm::SmallVector<llvm::Type *> Operands;
+
+    // TODO: do we want deduping code here, or does the backend handle deduping?
+    //       actually I think the FoldingSetNode stuff in Type.h might do it,
+    //       look into that
+
+    for (auto &Operand : SpirvType->getOperands()) {
+      using SpirvOperandKind =
+          HLSLInlineSpirvType::SpirvOperand::SpirvOperandKind;
+
+      llvm::Type *Result = nullptr;
+      switch (Operand.getKind()) {
+      case SpirvOperandKind::kConstantId: {
+        // TODO: `spirv.IntegralConstant` should be able to take multiple words.
+        //       Check that it can, and update spec and impl if not.
+
+        llvm::Type *IntegralType =
+            CGM.getTypes().ConvertType(Operand.getResultType());
+
+        // Convert the APInt value to an array of uint32_t words
+        llvm::APInt Value = Operand.getValue();
+        size_t NumWords = Value.getNumWords(32);
+        llvm::SmallVector<uint32_t> Words;
+
+        while (Value.ugt(0)) {
+          // TODO: test endianness
+          uint32_t Word = Value.trunc(32).getZExtValue();
+          Value.lshrInPlace(32);
+
+          Words.push_back(Word);
+        }
+        assert(Words.size() <= NumWords);
+
+        Result = llvm::TargetExtType::get(Ctx, "spirv.IntegralConstant",
+                                          {IntegralType}, Words);
+
+        break;
+      }
+      case SpirvOperandKind::kLiteral:
+        llvm_unreachable("TODO: handle this");
+        break;
+      case SpirvOperandKind::kTypeId:
+        Result = CGM.getTypes().ConvertType(Operand.getResultType());
+        break;
+      default:
+        llvm_unreachable("HLSLInlineSpirvType had invalid operand!");
+        break;
+      }
+
+      assert(Result);
+      Operands.push_back(Result);
+    }
+
+    return llvm::TargetExtType::get(Ctx, "spirv.Type", Operands,
+                                    {SpirvType->getOpcode(),
+                                     SpirvType->getSize(),
+                                     SpirvType->getAlignment()});
+  }
+
   auto *ResType = dyn_cast<HLSLAttributedResourceType>(Ty);
   if (!ResType)
     return nullptr;
 
-  llvm::LLVMContext &Ctx = CGM.getLLVMContext();
   const HLSLAttributedResourceType::Attributes &ResAttrs = ResType->getAttrs();
   switch (ResAttrs.ResourceClass) {
   case llvm::dxil::ResourceClass::UAV:

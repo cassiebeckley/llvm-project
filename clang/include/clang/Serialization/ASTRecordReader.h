@@ -214,6 +214,8 @@ public:
 
   TypeCoupledDeclRefInfo readTypeCoupledDeclRefInfo();
 
+  HLSLInlineSpirvType::SpirvOperand readHLSLSpirvOperand();
+
   /// Read a declaration name, advancing Idx.
   // DeclarationName readDeclarationName(); (inherited)
   DeclarationNameLoc readDeclarationNameLoc(DeclarationName Name);

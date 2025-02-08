@@ -1110,6 +1110,10 @@ static bool IsStructurallyEquivalent(StructuralEquivalenceContext &Context,
       return false;
     break;
 
+  case Type::HLSLInlineSpirv:
+    llvm_unreachable("TODO: uhhh worry about this later too?");
+    break;
+
   case Type::Paren:
     if (!IsStructurallyEquivalent(Context, cast<ParenType>(T1)->getInnerType(),
                                   cast<ParenType>(T2)->getInnerType()))

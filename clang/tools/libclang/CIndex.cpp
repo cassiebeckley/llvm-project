@@ -1796,6 +1796,10 @@ bool CursorVisitor::VisitHLSLAttributedResourceTypeLoc(
   return Visit(TL.getWrappedLoc());
 }
 
+bool CursorVisitor::VisitHLSLInlineSpirvTypeLoc(HLSLInlineSpirvTypeLoc TL) {
+  llvm_unreachable("TODO: yup.");
+}
+
 bool CursorVisitor::VisitFunctionTypeLoc(FunctionTypeLoc TL,
                                          bool SkipResultType) {
   if (!SkipResultType && Visit(TL.getReturnLoc()))

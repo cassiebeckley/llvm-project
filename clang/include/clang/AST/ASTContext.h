@@ -419,6 +419,9 @@ class ASTContext : public RefCountedBase<ASTContext> {
   /// The identifier '__builtin_common_type'.
   mutable IdentifierInfo *BuiltinCommonTypeName = nullptr;
 
+  /// The identifier '__hlsl_spirv_type'.
+  mutable IdentifierInfo *HLSLSpirvTypeName = nullptr;
+
   QualType ObjCConstantStringType;
   mutable RecordDecl *CFConstantStringTagDecl = nullptr;
   mutable TypedefDecl *CFConstantStringTypeDecl = nullptr;
@@ -627,6 +630,7 @@ private:
   mutable BuiltinTemplateDecl *MakeIntegerSeqDecl = nullptr;
   mutable BuiltinTemplateDecl *TypePackElementDecl = nullptr;
   mutable BuiltinTemplateDecl *BuiltinCommonTypeDecl = nullptr;
+  mutable BuiltinTemplateDecl *HLSLSpirvTypeDecl = nullptr;
 
   /// The associated SourceManager object.
   SourceManager &SourceMgr;
@@ -1155,6 +1159,7 @@ public:
   BuiltinTemplateDecl *getMakeIntegerSeqDecl() const;
   BuiltinTemplateDecl *getTypePackElementDecl() const;
   BuiltinTemplateDecl *getBuiltinCommonTypeDecl() const;
+  BuiltinTemplateDecl *getHLSLSpirvTypeDecl() const;
 
   // Builtin Types.
   CanQualType VoidTy;
@@ -1756,6 +1761,10 @@ public:
       const HLSLAttributedResourceType::Attributes &Attrs);
 
   QualType
+  getHLSLInlineSpirvType(uint32_t Opcode, uint32_t Size, uint32_t Alignment,
+                         ArrayRef<HLSLInlineSpirvType::SpirvOperand> Operands);
+
+  QualType
   getSubstTemplateTypeParmType(QualType Replacement, Decl *AssociatedDecl,
                                unsigned Index,
                                std::optional<unsigned> PackIndex,
@@ -2077,6 +2086,12 @@ public:
     if (!BuiltinCommonTypeName)
       BuiltinCommonTypeName = &Idents.get("__builtin_common_type");
     return BuiltinCommonTypeName;
+  }
+
+  IdentifierInfo *getHLSLSpirvTypeName() const {
+    if (!HLSLSpirvTypeName)
+      HLSLSpirvTypeName = &Idents.get("__hlsl_spirv_type");
+    return HLSLSpirvTypeName;
   }
 
   /// Retrieve the Objective-C "instancetype" type, if already known;

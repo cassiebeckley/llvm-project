@@ -923,18 +923,26 @@ bool Sema::LookupBuiltin(LookupResult &R) {
       NameKind == Sema::LookupRedeclarationWithLinkage) {
     IdentifierInfo *II = R.getLookupName().getAsIdentifierInfo();
     if (II) {
-      if (getLangOpts().CPlusPlus && NameKind == Sema::LookupOrdinaryName) {
-        if (II == getASTContext().getMakeIntegerSeqName()) {
-          R.addDecl(getASTContext().getMakeIntegerSeqDecl());
-          return true;
+      if (NameKind == Sema::LookupOrdinaryName) {
+        if (getLangOpts().CPlusPlus) {
+          if (II == getASTContext().getMakeIntegerSeqName()) {
+            R.addDecl(getASTContext().getMakeIntegerSeqDecl());
+            return true;
+          }
+          if (II == getASTContext().getTypePackElementName()) {
+            R.addDecl(getASTContext().getTypePackElementDecl());
+            return true;
+          }
+          if (II == getASTContext().getBuiltinCommonTypeName()) {
+            R.addDecl(getASTContext().getBuiltinCommonTypeDecl());
+            return true;
+          }
         }
-        if (II == getASTContext().getTypePackElementName()) {
-          R.addDecl(getASTContext().getTypePackElementDecl());
-          return true;
-        }
-        if (II == getASTContext().getBuiltinCommonTypeName()) {
-          R.addDecl(getASTContext().getBuiltinCommonTypeDecl());
-          return true;
+        if (getLangOpts().HLSL) {
+          if (II == getASTContext().getHLSLSpirvTypeName()) {
+            R.addDecl(getASTContext().getHLSLSpirvTypeDecl());
+            return true;
+          }
         }
       }
 
@@ -3274,6 +3282,12 @@ addAssociatedClassesAndNamespaces(AssociatedLookup &Result, QualType Ty) {
 
     case Type::HLSLAttributedResource:
       T = cast<HLSLAttributedResourceType>(T)->getWrappedType().getTypePtr();
+      break;
+
+    case Type::HLSLInlineSpirv:
+      llvm_unreachable("TODO: handle this. I *think* this can be treated same "
+                       "as Vector, ie, nothing, but double check");
+      break;
     }
 
     if (Queue.empty())

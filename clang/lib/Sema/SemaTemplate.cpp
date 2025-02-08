@@ -3320,6 +3320,96 @@ checkBuiltinTemplateIdType(Sema &SemaRef, BuiltinTemplateDecl *BTD,
     }
     return HasNoTypeMember;
   }
+
+  case BTK__hlsl_spirv_type: {
+    // TODO: make sure, ie, using a SpirvType in another template (depending on
+    //       an arg from that template) works
+    assert(Converted.size() == 4);
+    if (llvm::any_of(Converted, [](auto &C) { return C.isDependent(); }))
+      return Context.getCanonicalTemplateSpecializationType(TemplateName(BTD),
+                                                            Converted);
+
+    uint64_t Opcode = Converted[0].getAsIntegral().getZExtValue();
+    uint64_t Size = Converted[1].getAsIntegral().getZExtValue();
+    uint64_t Alignment = Converted[2].getAsIntegral().getZExtValue();
+    // TODO: assertions or diags for any of these not fitting in a uint32_t?
+
+    // TODO: maybe 0 for Size or Alignment should be converted to option()
+
+    ArrayRef<TemplateArgument> OperandArgs = Converted[3].getPackAsArray();
+    size_t NumOperands = OperandArgs.size();
+
+    HLSLInlineSpirvType::SpirvOperand *Operands =
+        new (Context) HLSLInlineSpirvType::SpirvOperand[NumOperands];
+
+    size_t I = 0;
+    for (auto &OperandTA : OperandArgs) {
+      QualType OperandArg = OperandTA.getAsType();
+      HLSLInlineSpirvType::SpirvOperand &Operand = Operands[I++];
+
+      if (auto *RT = OperandArg->getAs<RecordType>()) {
+        // TODO: factor this all out into hlslSpirvTypeImpl or something
+        bool Literal = false;
+        // TODO: might want to getIdentifier and compare those instead?
+        //       also, check namespace, especially for vk::Literal
+        if (RT->getDecl()->getName() == "Literal") {
+          auto SpecDecl =
+              dyn_cast<ClassTemplateSpecializationDecl>(RT->getDecl());
+          // TODO: probably change this to diag unless identity checking is more
+          // precise
+          assert(SpecDecl);
+
+          const TemplateArgumentList &LiteralArgs = SpecDecl->getTemplateArgs();
+          QualType ConstantType = LiteralArgs[0].getAsType();
+          RT = ConstantType->getAs<RecordType>();
+          // TODO: probably change this to diag unless identity checking is more
+          // precise
+          assert(RT);
+          Literal = true;
+        }
+
+        if (RT->getDecl()->getName() == "integral_constant") {
+          auto SpecDecl =
+              dyn_cast<ClassTemplateSpecializationDecl>(RT->getDecl());
+          // TODO: probably change this to diag unless identity checking is more
+          // precise
+          assert(SpecDecl);
+
+          const TemplateArgumentList &ConstantArgs =
+              SpecDecl->getTemplateArgs();
+
+          QualType ConstantType = ConstantArgs[0].getAsType();
+          llvm::APInt Value = ConstantArgs[1].getAsIntegral();
+
+          if (Literal) {
+            uint64_t ImmediateValue = Value.getZExtValue();
+            // TODO: diag instead of assert
+            assert(ImmediateValue <= UINT32_MAX);
+
+            Operand = HLSLInlineSpirvType::SpirvOperand::createLiteral(
+                ImmediateValue);
+            break;
+          } else {
+            Operand = HLSLInlineSpirvType::SpirvOperand::createConstant(
+                ConstantType, Value);
+            break;
+          }
+        } else if (Literal) {
+          // TODO: diag if Literal does not contain
+          // integral_constant
+          assert(
+              false &&
+              "TODO: write a diag for this; should not be assert. then test.");
+        }
+      }
+      // TODO: identify whether RT is a HLSL resource wrapper struct and get the
+      // handle HLSLAttributedResourceType
+      Operand = HLSLInlineSpirvType::SpirvOperand::createType(OperandArg);
+    }
+
+    return Context.getHLSLInlineSpirvType(Opcode, Size, Alignment,
+                                          ArrayRef(Operands, NumOperands));
+  }
   }
   llvm_unreachable("unexpected BuiltinTemplateDecl!");
 }
@@ -6145,6 +6235,11 @@ bool UnnamedLocalNoLinkageFinder::VisitHLSLAttributedResourceType(
   if (T->hasContainedType() && Visit(T->getContainedType()))
     return true;
   return Visit(T->getWrappedType());
+}
+
+bool UnnamedLocalNoLinkageFinder::VisitHLSLInlineSpirvType(
+    const HLSLInlineSpirvType *T) {
+  llvm_unreachable("TODO: probably need to visit each operand type");
 }
 
 bool Sema::CheckTemplateArgument(TypeSourceInfo *ArgInfo) {

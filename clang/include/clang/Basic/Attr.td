@@ -4813,6 +4813,13 @@ def HLSLROV : TypeAttr {
   let Documentation = [InternalOnly];
 }
 
+def HLSLSpirvType : TypeAttr {
+  let Spellings = [CXX11<"hlsl", "spirv_type">];
+  let LangOpts = [HLSL];
+  let Args = [ExprArgument<"OpCode">, ExprArgument<"Size">, ExprArgument<"Alignment">, VariadicIdentifierArgument<"Operands">];
+  let Documentation = [InternalOnly];
+}
+
 def HLSLResourceClass : TypeAttr {
   let Spellings = [CXX11<"hlsl", "resource_class">];
   let LangOpts = [HLSL];

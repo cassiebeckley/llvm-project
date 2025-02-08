@@ -731,6 +731,10 @@ namespace {
       return Visit(T.getWrappedLoc());
     }
 
+    TypeLoc VisitHLSLInlineSpirvTypeLoc(HLSLInlineSpirvTypeLoc T) {
+      llvm_unreachable("TODO: visit each operand type");
+    }
+
     TypeLoc VisitMacroQualifiedTypeLoc(MacroQualifiedTypeLoc T) {
       return Visit(T.getInnerLoc());
     }

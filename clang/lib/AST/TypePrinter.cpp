@@ -247,6 +247,8 @@ bool TypePrinter::canPrefixQualifiers(const Type *T,
     case Type::DependentBitInt:
     case Type::BTFTagAttributed:
     case Type::HLSLAttributedResource:
+    case Type::HLSLInlineSpirv:
+      // TODO: not absolutely certain this should be true for HLSLInlineSpirv
       CanPrefixQualifiers = true;
       break;
 
@@ -1968,6 +1970,9 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::HLSLContainedType:
     llvm_unreachable("HLSL resource type attributes handled separately");
 
+  case attr::HLSLSpirvType:
+    llvm_unreachable("TODO: handle this later.");
+
   case attr::OpenCLPrivateAddressSpace:
   case attr::OpenCLGlobalAddressSpace:
   case attr::OpenCLGlobalDeviceAddressSpace:
@@ -2112,6 +2117,30 @@ void TypePrinter::printHLSLAttributedResourceAfter(
     printAfter(ContainedTy, OS);
     OS << ")]]";
   }
+}
+
+void TypePrinter::printHLSLInlineSpirvBefore(const HLSLInlineSpirvType *T,
+                                             raw_ostream &OS) {
+  // TODO: figure out what should be before and after
+  OS << "__hlsl_spirv_t";
+}
+
+void TypePrinter::printHLSLInlineSpirvAfter(const HLSLInlineSpirvType *T,
+                                            raw_ostream &OS) {
+  OS << "<T->getOpcode()";
+
+  // TODO: probably would be better to make size and alignment Optionals
+  if (T->getSize() > 0) {
+    OS << ", " << T->getSize();
+  }
+
+  if (T->getAlignment() > 0) {
+    OS << ", " << T->getAlignment();
+  }
+
+  // TODO: print operands
+
+  OS << ">";
 }
 
 void TypePrinter::printObjCInterfaceBefore(const ObjCInterfaceType *T,

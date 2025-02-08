@@ -2475,6 +2475,9 @@ static TemplateDeductionResult DeduceTemplateArgumentsByTypeMatch(
       // No template argument deduction for these types
       return TemplateDeductionResult::Success;
 
+    case Type::HLSLInlineSpirv:
+      llvm_unreachable("TODO: make sure this is handled correctly");
+
     case Type::PackIndexing: {
       const PackIndexingType *PIT = P->getAs<PackIndexingType>();
       if (PIT->hasSelectedType()) {
@@ -7092,6 +7095,9 @@ MarkUsedTemplateParameters(ASTContext &Ctx, QualType T,
   case Type::UnresolvedUsing:
   case Type::Pipe:
   case Type::BitInt:
+  // TODO: actually, HLSLInlineSpirv operands might be template parameters.
+  //       Check that.
+  case Type::HLSLInlineSpirv:
 #define TYPE(Class, Base)
 #define ABSTRACT_TYPE(Class, Base)
 #define DEPENDENT_TYPE(Class, Base)

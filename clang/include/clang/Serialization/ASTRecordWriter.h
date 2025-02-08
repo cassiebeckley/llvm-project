@@ -151,6 +151,12 @@ public:
     writeBool(Info.isDeref());
   }
 
+  void writeHLSLSpirvOperand(HLSLInlineSpirvType::SpirvOperand Op) {
+    Record->push_back(Op.getKind());
+    writeQualType(Op.getResultType());
+    writeAPInt(Op.getValue());
+  }
+
   /// Emit a source range.
   void AddSourceRange(SourceRange Range, LocSeq *Seq = nullptr) {
     return Writer->AddSourceRange(Range, *Record, Seq);

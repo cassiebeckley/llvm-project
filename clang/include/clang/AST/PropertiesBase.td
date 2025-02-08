@@ -148,6 +148,8 @@ def UInt64 : CountPropertyType<"uint64_t">;
 def UnaryTypeTransformKind : EnumPropertyType<"UnaryTransformType::UTTKind">;
 def VectorKind : EnumPropertyType<"VectorKind">;
 def TypeCoupledDeclRefInfo : PropertyType;
+// TODO: maybe allow pass by reference?
+def HLSLSpirvOperand : PropertyType<"HLSLInlineSpirvType::SpirvOperand"> { let PassByReference = 1; }
 
 def ExceptionSpecInfo : PropertyType<"FunctionProtoType::ExceptionSpecInfo"> {
   let BufferElementTypes = [ QualType ];
