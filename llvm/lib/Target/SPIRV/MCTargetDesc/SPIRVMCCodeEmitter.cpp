@@ -45,13 +45,11 @@ public:
   void encodeInstruction(const MCInst &MI, SmallVectorImpl<char> &CB,
                          SmallVectorImpl<MCFixup> &Fixups,
                          const MCSubtargetInfo &STI) const override;
-  void encodeUnknownType(const MCInst &MI, SmallVectorImpl<char> &CB,
-                         SmallVectorImpl<MCFixup> &Fixups,
-                         const MCSubtargetInfo &STI) const;
+  void encodeFirstWord(const uint64_t OpCode, const uint64_t NumWords,
+                       SmallVectorImpl<char> &CB) const;
+  void encodeUnknownType(const MCInst &MI, SmallVectorImpl<char> &CB) const;
   void encodeUnknownInstruction(const MCInst &inst,
-                                SmallVectorImpl<char> &vector,
-                                SmallVectorImpl<MCFixup> &vector_1,
-                                const MCSubtargetInfo &info) const;
+                                SmallVectorImpl<char> &CB) const;
 };
 
 } // end anonymous namespace
@@ -111,17 +109,22 @@ static void emitUntypedInstrOperands(const MCInst &MI,
     emitOperand(Op, CB);
 }
 
-void SPIRVMCCodeEmitter::encodeUnknownType(const MCInst &MI,
-                                           SmallVectorImpl<char> &CB,
-                                           SmallVectorImpl<MCFixup> &Fixups,
-                                           const MCSubtargetInfo &STI) const {
-  // Encode the first 32 SPIR-V bits with the number of args and the opcode.
-  const uint64_t OpCode = MI.getOperand(1).getImm();
-  const uint32_t NumWords = MI.getNumOperands();
+void SPIRVMCCodeEmitter::encodeFirstWord(const uint64_t OpCode,
+                                         const uint64_t NumWords,
+                                         SmallVectorImpl<char> &CB) const {
   const uint32_t FirstWord = (0xFFFF & NumWords) << 16 | (0xFFFF & OpCode);
 
   // encoding: <opcode+len> <result type> [<operand0> <operand1> ...]
   support::endian::write(CB, FirstWord, llvm::endianness::little);
+}
+
+void SPIRVMCCodeEmitter::encodeUnknownType(const MCInst &MI,
+                                           SmallVectorImpl<char> &CB) const {
+  // Encode the first 32 SPIR-V bits with the number of args and the opcode.
+  const uint64_t OpCode = MI.getOperand(1).getImm();
+  const uint32_t NumWords = MI.getNumOperands();
+
+  encodeFirstWord(OpCode, NumWords, CB);
 
   emitOperand(MI.getOperand(0), CB);
   for (unsigned i = 2; i < NumWords; ++i)
@@ -129,16 +132,13 @@ void SPIRVMCCodeEmitter::encodeUnknownType(const MCInst &MI,
 }
 
 void SPIRVMCCodeEmitter::encodeUnknownInstruction(
-    const MCInst &MI, SmallVectorImpl<char> &CB,
-    SmallVectorImpl<MCFixup> &Fixups, const MCSubtargetInfo &STI) const {
+    const MCInst &MI, SmallVectorImpl<char> &CB) const {
   // Encode the first 32 SPIR-V bytes with the number of args and the opcode.
 
   const uint64_t OpCode = MI.getOperand(2).getImm();
-  const uint32_t NumWords =
-      MI.getNumOperands() + 1 -
-      1; // The opcode is not an operand, so we need to substract 1.
-  const uint32_t FirstWord = (NumWords << 16) | OpCode;
-  support::endian::write(CB, FirstWord, llvm::endianness::little);
+  const uint32_t NumWords = MI.getNumOperands();
+
+  encodeFirstWord(OpCode, NumWords, CB);
 
   unsigned NumOps = MI.getNumOperands();
   emitOperand(MI.getOperand(1), CB);
@@ -152,20 +152,20 @@ void SPIRVMCCodeEmitter::encodeInstruction(const MCInst &MI,
                                            SmallVectorImpl<MCFixup> &Fixups,
                                            const MCSubtargetInfo &STI) const {
   if (MI.getOpcode() == SPIRV::UNKNOWN_type) {
-    encodeUnknownType(MI, CB, Fixups, STI);
+    encodeUnknownType(MI, CB);
     return;
   }
 
   if (MI.getOpcode() == SPIRV::UNKNOWN_instruction) {
-    encodeUnknownInstruction(MI, CB, Fixups, STI);
+    encodeUnknownInstruction(MI, CB);
     return;
   }
 
   // Encode the first 32 SPIR-V bytes with the number of args and the opcode.
   const uint64_t OpCode = getBinaryCodeForInstr(MI, Fixups, STI);
   const uint32_t NumWords = MI.getNumOperands() + 1;
-  const uint32_t FirstWord = (NumWords << 16) | OpCode;
-  support::endian::write(CB, FirstWord, llvm::endianness::little);
+
+  encodeFirstWord(OpCode, NumWords, CB);
 
   // Emit the instruction arguments (emitting the output type first if present).
   if (hasType(MI, MCII))
