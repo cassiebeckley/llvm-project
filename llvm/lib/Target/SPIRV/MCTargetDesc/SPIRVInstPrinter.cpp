@@ -356,13 +356,14 @@ void SPIRVInstPrinter::printUnknownInstruction(const MCInst *MI,
   // Print the opcode using the spirv-as unknown opcode syntax
   O << "OpUnknown(" << Enumerant << ", " << NumOps << ") ";
 
-  // The result ID must be printed after the opcode when using this syntax
-  printOperand(MI, 0, O);
+  // Print result type
+  printOperand(MI, 1, O);
 
   O << " ";
 
-  // Print result type
-  printOperand(MI, 1, O);
+  // The result ID must be printed after the opcode and result type when using
+  // this syntax
+  printOperand(MI, 0, O);
 
   O << " ";
 
