@@ -4,8 +4,12 @@
 ; This will be added by another feature in another commit. Disabling for now.
 ; RUN-DISABLE: %if spirv-tools %{ llc -O0 -mtriple=spirv-vulkan-compute %s -o - -filetype=obj | spirv-val %}
 
+; CHECK: %[[#glsl_std_450:]] = OpExtInstImport "GLSL.std.450"
+
 ; CHECK-DAG: %[[#uint:]] = OpTypeInt 32 0
 ; CHECK-DAG: %[[#ulong:]] = OpTypeInt 64 0
+; CHECK-DAG: %[[#float:]] = OpTypeFloat 32
+; CHECK-DAG: %[[#float_0:]] = OpConstant %[[#float]] 0
 ; CHECK-DAG: %[[#uint_1:]] = OpConstant %[[#uint]] 1
 
 ; Function Attrs: alwaysinline convergent mustprogress norecurse nounwind
@@ -14,9 +18,10 @@ entry:
   %0 = call token @llvm.experimental.convergence.entry()
   %clock = alloca i64, align 8
   %f = alloca float, align 4
-; CHECK: !5056 %[[#ulong]] %[[#uint_1]]
+; CHECK: OpUnknown(5056, 4) %[[#]] %[[#ulong]] %[[#uint_1]]
   %call1 = call spir_func noundef i64 @_Z9ReadClockj(i32 noundef 1) #5 [ "convergencectrl"(token %0) ]
   store i64 %call1, ptr %clock, align 8
+; CHECK: OpExtInst %[[#float]] %[[#glsl_std_450]] Sin %[[#float_0]]
   %call2 = call spir_func noundef float @_Z7spv_sinf(float noundef 0.000000e+00) #5 [ "convergencectrl"(token %0) ]
   store float %call2, ptr %f, align 4
   ret void

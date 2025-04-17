@@ -232,6 +232,7 @@ std::string getExtInstName(SPIRV::InstructionSet::InstructionSet Set,
       SPIRV::lookupExtendedBuiltinBySetAndNumber(Set, InstructionNumber);
 
   if (!Lookup)
+    // TODO: hmmm?
     return ("!" + Twine(InstructionNumber)).str();
 
   return Lookup->Name.str();
