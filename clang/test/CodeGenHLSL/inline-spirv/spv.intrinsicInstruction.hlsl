@@ -4,7 +4,7 @@
 [[vk::ext_instruction(/* OpReadClockKHR */ 5056)]]
 long ReadClock(unsigned int scope);
 
-// CHECK: declare spir_func noundef float @_Z7spv_sinf(float noundef) #[[#SinAttr:]]
+// CHECK: declare spir_func noundef nofpclass(nan inf) float @_Z7spv_sinf(float noundef nofpclass(nan inf)) #[[#SinAttr:]]
 [[vk::ext_instruction(/* Sin*/ 13, "GLSL.std.450")]]
 float spv_sin(float v);
 

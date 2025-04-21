@@ -613,8 +613,6 @@ bool SPIRVCallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
   // Emit an inline SPIR-V instruction
   if (isFunctionDecl && cast<Function>(Info.Callee.getGlobal())->hasFnAttribute("spv.ext_instruction")) {
     Attribute Attr = cast<Function>(Info.Callee.getGlobal())->getFnAttribute("spv.ext_instruction");
-    // TODO: maybe two function attributes, `spv.ext_instruction` as int and
-    // `spv.ext_instruction_set` as string.
     StringRef AttrString = Attr.getValueAsString();
     uint32_t Opcode = 0;
     AttrString.consumeInteger(10, Opcode);
