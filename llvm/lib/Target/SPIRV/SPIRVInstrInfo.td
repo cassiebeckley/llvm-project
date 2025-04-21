@@ -25,10 +25,6 @@ def UNKNOWN_instruction
     : UnknownOp<(outs ID:$dst_id),
                 (ins TYPE:$src_ty, i32imm:$opcode, variable_ops), " ">;
 
-def UNKNOWN_instruction:
- UnknownOp<(outs ID:$dst_id), (ins TYPE:$src_ty, i32imm:$opcode, variable_ops),
-                  "$dst_id = !$opcode $src_ty">;
-
 def UNKNOWN_void_instruction
     : UnknownOp<(outs), (ins i32imm:$opcode, variable_ops), " ">;
 

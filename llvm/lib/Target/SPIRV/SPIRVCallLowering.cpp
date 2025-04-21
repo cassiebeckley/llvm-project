@@ -619,7 +619,9 @@ bool SPIRVCallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
     uint32_t Opcode = 0;
     AttrString.consumeInteger(10, Opcode);
     AttrString.consume_front(",");
-    SPIRVType *RetType = GR->assignTypeToVReg(OrigRetTy, ResVReg, MIRBuilder);
+    SPIRVType *RetType =
+        GR->assignTypeToVReg(OrigRetTy, ResVReg, MIRBuilder,
+                             SPIRV::AccessQualifier::ReadWrite, true);
     MachineInstrBuilder MIB;
     if (AttrString.empty()) {
       // TODO: Find opcode in known opcodes if possible.
