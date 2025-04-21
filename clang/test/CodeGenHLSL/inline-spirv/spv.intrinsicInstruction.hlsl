@@ -8,11 +8,22 @@ long ReadClock(unsigned int scope);
 [[vk::ext_instruction(/* Sin*/ 13, "GLSL.std.450")]]
 float spv_sin(float v);
 
+// CHECK: declare spir_func void @_Z7spv_nopv() #[[#NopAttr:]]
+[[vk::ext_instruction(/* OpNop */ 0)]]
+void spv_nop();
+
 [numthreads(1,1,1)]
 void main() {
   long clock = ReadClock(1);
   float f = spv_sin(0.0);
+  spv_nop();
 }
 
-// CHECK: attributes #[[#ClockAttr]] = { convergent "no-trapping-math"="true" "spv.ext_instruction"="5056," "stack-protector-buffer-size"="8" }
-// CHECK: attributes #[[#SinAttr]] = { convergent "no-trapping-math"="true" "spv.ext_instruction"="13,GLSL.std.450" "stack-protector-buffer-size"="8" }
+// CHECK: attributes #[[#ClockAttr]]
+// CHECK-SAME: "spv.ext_instruction"="5056,"
+
+// CHECK: attributes #[[#SinAttr]]
+// CHECK-SAME: "spv.ext_instruction"="13,GLSL.std.450"
+
+// CHECK: attributes #[[#NopAttr]]
+// CHECK-SAME: "spv.ext_instruction"="0"

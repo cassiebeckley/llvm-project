@@ -117,7 +117,9 @@ void SPIRVInstPrinter::printInst(const MCInst *MI, uint64_t Address,
   } else if (OpCode == SPIRV::UNKNOWN_type) {
     printUnknownType(MI, OS);
   } else if (OpCode == SPIRV::UNKNOWN_instruction) {
-    printUnknownInstruction(MI, OS);
+    printUnknownInstruction(MI, OS, true);
+  } else if (OpCode == SPIRV::UNKNOWN_void_instruction) {
+    printUnknownInstruction(MI, OS, false);
   } else {
     // Print any extra operands for variadic instructions.
     const MCInstrDesc &MCDesc = MII.get(OpCode);
@@ -344,11 +346,13 @@ void SPIRVInstPrinter::printUnknownType(const MCInst *MI, raw_ostream &O) {
   printRemainingVariableOps(MI, NumFixedOps, O, true);
 }
 
-void SPIRVInstPrinter::printUnknownInstruction(const MCInst *MI,
-                                               raw_ostream &O) {
-  const auto EnumOperand = MI->getOperand(2);
-  assert(EnumOperand.isImm() &&
-         "third operand of UNKNOWN_type must be opcode!");
+void SPIRVInstPrinter::printUnknownInstruction(const MCInst *MI, raw_ostream &O,
+                                               bool HasReturnValue) {
+  const MCInstrDesc &MCDesc = MII.get(MI->getOpcode());
+  unsigned NumFixedOps = MCDesc.getNumOperands();
+
+  const auto EnumOperand = MI->getOperand(NumFixedOps - 1);
+  assert(EnumOperand.isImm() && "operand of UNKNOWN_type must be opcode!");
 
   const auto Enumerant = EnumOperand.getImm();
   const auto NumOps = MI->getNumOperands();
@@ -356,19 +360,19 @@ void SPIRVInstPrinter::printUnknownInstruction(const MCInst *MI,
   // Print the opcode using the spirv-as unknown opcode syntax
   O << "OpUnknown(" << Enumerant << ", " << NumOps << ") ";
 
-  // Print result type
-  printOperand(MI, 1, O);
+  if (HasReturnValue) {
+    // Print result type
+    printOperand(MI, 1, O);
 
-  O << " ";
+    O << " ";
 
-  // The result ID must be printed after the opcode and result type when using
-  // this syntax
-  printOperand(MI, 0, O);
+    // The result ID must be printed after the opcode and result type when using
+    // this syntax
+    printOperand(MI, 0, O);
 
-  O << " ";
+    O << " ";
+  }
 
-  const MCInstrDesc &MCDesc = MII.get(MI->getOpcode());
-  unsigned NumFixedOps = MCDesc.getNumOperands();
   if (NumOps == NumFixedOps)
     return;
 

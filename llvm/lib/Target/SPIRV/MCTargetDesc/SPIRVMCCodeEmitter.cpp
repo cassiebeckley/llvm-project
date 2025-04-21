@@ -48,8 +48,8 @@ public:
   void encodeFirstWord(const uint64_t OpCode, const uint64_t NumWords,
                        SmallVectorImpl<char> &CB) const;
   void encodeUnknownType(const MCInst &MI, SmallVectorImpl<char> &CB) const;
-  void encodeUnknownInstruction(const MCInst &inst,
-                                SmallVectorImpl<char> &CB) const;
+  void encodeUnknownInstruction(const MCInst &inst, SmallVectorImpl<char> &CB,
+                                bool HasReturnValue) const;
 };
 
 } // end anonymous namespace
@@ -131,19 +131,24 @@ void SPIRVMCCodeEmitter::encodeUnknownType(const MCInst &MI,
     emitOperand(MI.getOperand(i), CB);
 }
 
-void SPIRVMCCodeEmitter::encodeUnknownInstruction(
-    const MCInst &MI, SmallVectorImpl<char> &CB) const {
+void SPIRVMCCodeEmitter::encodeUnknownInstruction(const MCInst &MI,
+                                                  SmallVectorImpl<char> &CB,
+                                                  bool HasReturnValue) const {
   // Encode the first 32 SPIR-V bytes with the number of args and the opcode.
 
-  const uint64_t OpCode = MI.getOperand(2).getImm();
+  const int FirstOperandIndex = HasReturnValue ? 3 : 1;
+
+  const uint64_t OpCode = MI.getOperand(FirstOperandIndex - 1).getImm();
   const uint32_t NumWords = MI.getNumOperands();
 
   encodeFirstWord(OpCode, NumWords, CB);
 
-  unsigned NumOps = MI.getNumOperands();
-  emitOperand(MI.getOperand(1), CB);
-  emitOperand(MI.getOperand(0), CB);
-  for (unsigned i = 3; i < NumOps; ++i)
+  if (HasReturnValue) {
+    emitOperand(MI.getOperand(1), CB);
+    emitOperand(MI.getOperand(0), CB);
+  }
+
+  for (unsigned i = FirstOperandIndex; i < NumWords; ++i)
     emitOperand(MI.getOperand(i), CB);
 }
 
@@ -154,10 +159,11 @@ void SPIRVMCCodeEmitter::encodeInstruction(const MCInst &MI,
   if (MI.getOpcode() == SPIRV::UNKNOWN_type) {
     encodeUnknownType(MI, CB);
     return;
-  }
-
-  if (MI.getOpcode() == SPIRV::UNKNOWN_instruction) {
-    encodeUnknownInstruction(MI, CB);
+  } else if (MI.getOpcode() == SPIRV::UNKNOWN_instruction) {
+    encodeUnknownInstruction(MI, CB, true);
+    return;
+  } else if (MI.getOpcode() == SPIRV::UNKNOWN_void_instruction) {
+    encodeUnknownInstruction(MI, CB, false);
     return;
   }
 

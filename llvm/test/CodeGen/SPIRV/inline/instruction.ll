@@ -1,5 +1,7 @@
 ; RUN: llc -verify-machineinstrs -O0 -mtriple=spirv-vulkan-compute %s -o - | FileCheck %s
 
+; TODO: validate assembled text assembly?
+
 ; The ReadClock function requires a capability to be added to pass validation.
 ; This will be added by another feature in another commit. Disabling for now.
 ; RUN-DISABLE: %if spirv-tools %{ llc -O0 -mtriple=spirv-vulkan-compute %s -o - -filetype=obj | spirv-val %}
@@ -18,12 +20,14 @@ entry:
   %0 = call token @llvm.experimental.convergence.entry()
   %clock = alloca i64, align 8
   %f = alloca float, align 4
-; CHECK: OpUnknown(5056, 4) %[[#]] %[[#ulong]] %[[#uint_1]]
-  %call1 = call spir_func noundef i64 @_Z9ReadClockj(i32 noundef 1) #5 [ "convergencectrl"(token %0) ]
+; CHECK: OpUnknown(5056, 4) %[[#ulong]] %[[#]] %[[#uint_1]]
+  %call1 = call spir_func noundef i64 @_Z9ReadClockj(i32 noundef 1) #6 [ "convergencectrl"(token %0) ]
   store i64 %call1, ptr %clock, align 8
 ; CHECK: OpExtInst %[[#float]] %[[#glsl_std_450]] Sin %[[#float_0]]
-  %call2 = call spir_func noundef float @_Z7spv_sinf(float noundef 0.000000e+00) #5 [ "convergencectrl"(token %0) ]
+  %call2 = call spir_func noundef float @_Z7spv_sinf(float noundef 0.000000e+00) #6 [ "convergencectrl"(token %0) ]
   store float %call2, ptr %f, align 4
+; CHECK: OpUnknown(0, 1)
+  call spir_func void @_Z7spv_nopv() #6 [ "convergencectrl"(token %0) ]
   ret void
 }
 
@@ -44,12 +48,16 @@ declare spir_func noundef i64 @_Z9ReadClockj(i32 noundef) #3
 ; Function Attrs: convergent
 declare spir_func noundef float @_Z7spv_sinf(float noundef) #4
 
+; Function Attrs: convergent
+declare spir_func void @_Z7spv_nopv() #5
+
 attributes #0 = { alwaysinline convergent mustprogress norecurse nounwind "no-trapping-math"="true" "stack-protector-buffer-size"="8" }
 attributes #1 = { convergent noinline norecurse "hlsl.numthreads"="1,1,1" "hlsl.shader"="compute" "no-trapping-math"="true" "stack-protector-buffer-size"="8" }
 attributes #2 = { convergent nocallback nofree nosync nounwind willreturn memory(none) }
 attributes #3 = { convergent "no-trapping-math"="true" "spv.ext_instruction"="5056," "stack-protector-buffer-size"="8" }
 attributes #4 = { convergent "no-trapping-math"="true" "spv.ext_instruction"="13,GLSL.std.450" "stack-protector-buffer-size"="8" }
-attributes #5 = { convergent }
+attributes #5 = { convergent "approx-func-fp-math"="true" "no-infs-fp-math"="true" "no-nans-fp-math"="true" "no-signed-zeros-fp-math"="true" "no-trapping-math"="true" "spv.ext_instruction"="0," "stack-protector-buffer-size"="8" }
+attributes #6 = { convergent }
 
 !llvm.module.flags = !{!0, !1}
 !llvm.ident = !{!2}

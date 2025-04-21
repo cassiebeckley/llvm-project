@@ -610,9 +610,12 @@ bool SPIRVCallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
       return *Res;
   }
 
+  // Emit an inline SPIR-V instruction
   if (isFunctionDecl && cast<Function>(Info.Callee.getGlobal())->hasFnAttribute("spv.ext_instruction")) {
     Attribute Attr = cast<Function>(Info.Callee.getGlobal())->getFnAttribute("spv.ext_instruction");
-    StringRef AttrString =Attr.getValueAsString();
+    // TODO: maybe two function attributes, `spv.ext_instruction` as int and
+    // `spv.ext_instruction_set` as string.
+    StringRef AttrString = Attr.getValueAsString();
     uint32_t Opcode = 0;
     AttrString.consumeInteger(10, Opcode);
     AttrString.consume_front(",");
@@ -620,10 +623,15 @@ bool SPIRVCallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
     MachineInstrBuilder MIB;
     if (AttrString.empty()) {
       // TODO: Find opcode in known opcodes if possible.
-      MIB = MIRBuilder.buildInstr(SPIRV::UNKNOWN_instruction)
-          .addDef(ResVReg)
-          .addUse(GR->getSPIRVTypeID(RetType))
-          .addImm(Opcode);
+      if (!OrigRetTy->isVoidTy()) {
+        MIB = MIRBuilder.buildInstr(SPIRV::UNKNOWN_instruction)
+                  .addDef(ResVReg)
+                  .addUse(GR->getSPIRVTypeID(RetType))
+                  .addImm(Opcode);
+      } else {
+        MIB = MIRBuilder.buildInstr(SPIRV::UNKNOWN_void_instruction)
+                  .addImm(Opcode);
+      }
     } else {
       MIB = MIRBuilder.buildInstr(SPIRV::OpExtInst)
           .addDef(ResVReg)
