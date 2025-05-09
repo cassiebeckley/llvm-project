@@ -12,11 +12,16 @@ float spv_sin(float v);
 [[vk::ext_instruction(/* OpNop */ 0)]]
 void spv_nop();
 
+// CHECK: declare spir_func noundef nofpclass(nan inf) float @_Z11opencl_ceilf(float noundef nofpclass(nan inf)) #[[#CeilAttr:]]
+[[vk::ext_instruction(/* ceil */ 12, "OpenCL.std")]]
+float opencl_ceil(float v);
+
 [numthreads(1,1,1)]
 void main() {
   long clock = ReadClock(1);
   float f = spv_sin(0.0);
   spv_nop();
+  float a = opencl_ceil(0.0);
 }
 
 // CHECK: attributes #[[#ClockAttr]]
@@ -26,4 +31,7 @@ void main() {
 // CHECK-SAME: "spv.ext_instruction"="13,GLSL.std.450"
 
 // CHECK: attributes #[[#NopAttr]]
-// CHECK-SAME: "spv.ext_instruction"="0"
+// CHECK-SAME: "spv.ext_instruction"="0,"
+
+// CHECK: attributes #[[#CeilAttr]]
+// CHECK-SAME: "spv.ext_instruction"="12,OpenCL.std"

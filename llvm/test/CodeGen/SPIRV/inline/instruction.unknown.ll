@@ -1,20 +1,20 @@
-; RUN: llc -verify-machineinstrs -O0 -mtriple=spirv-unknown-unknown %s -o - | FileCheck %s
+; RUN: llc -verify-machineinstrs -O0 -mtriple=spirv-vulkan-compute %s -o - | FileCheck %s
+; RUN: %if spirv-tools %{ llc -O0 -mtriple=spirv-vulkan-compute %s -o - -filetype=obj | spirv-val %}
 
 ; CHECK: %[[#glsl_std_450:]] = OpExtInstImport "GLSL.std.450"
 
-; CHECK: OpName %[[#clock:]] "clock"
+; CHECK: OpName %[[#a:]] "a"
 
 ; CHECK: %[[#ulong:]] = OpTypeInt 64 0
 ; CHECK: %[[#uint:]] = OpTypeInt 32 0
 
 ; CHECK: %[[#uint_1:]] = OpConstant %[[#uint]] 1
 
-; TODO: replace this with some contrived tests
-
 define void @main() #0 {
 entry:
 ; CHECK: OpExtInst %[[#ulong]] %[[#glsl_std_450]] !123456 %[[#uint_1]]
-  %clock = call i64 @Something(i32 1)
+; TODO: is arbitrary integer syntax actually needed? or can the instruction just be an integer literal?
+  %a = call i64 @Something(i32 1)
   ret void
 }
 

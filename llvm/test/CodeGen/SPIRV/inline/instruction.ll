@@ -6,6 +6,7 @@
 ; This will be added by another feature in another commit. Disabling for now.
 ; RUN-DISABLE: %if spirv-tools %{ llc -O0 -mtriple=spirv-vulkan-compute %s -o - -filetype=obj | spirv-val %}
 
+; CHECK: %[[#opencl_std:]] = OpExtInstImport "OpenCL.std"
 ; CHECK: %[[#glsl_std_450:]] = OpExtInstImport "GLSL.std.450"
 
 ; CHECK-DAG: %[[#uint:]] = OpTypeInt 32 0
@@ -20,6 +21,7 @@ entry:
   %0 = call token @llvm.experimental.convergence.entry()
   %clock = alloca i64, align 8
   %f = alloca float, align 4
+  %a = alloca float, align 4
 ; CHECK: OpUnknown(5056, 4) %[[#ulong]] %[[#]] %[[#uint_1]]
   %call1 = call spir_func noundef i64 @_Z9ReadClockj(i32 noundef 1) #6 [ "convergencectrl"(token %0) ]
   store i64 %call1, ptr %clock, align 8
@@ -28,6 +30,9 @@ entry:
   store float %call2, ptr %f, align 4
 ; CHECK: OpUnknown(0, 1)
   call spir_func void @_Z7spv_nopv() #6 [ "convergencectrl"(token %0) ]
+  ; CHECK: OpExtInst %[[#float]] %[[#opencl_std]] ceil %[[#float_0]]
+  %call3 = call reassoc nnan ninf nsz arcp afn spir_func noundef nofpclass(nan inf) float @_Z11opencl_ceilf(float noundef nofpclass(nan inf) 0.000000e+00) #7 [ "convergencectrl"(token %0) ]
+  store float %call3, ptr %a, align 4
   ret void
 }
 
@@ -51,13 +56,17 @@ declare spir_func noundef float @_Z7spv_sinf(float noundef) #4
 ; Function Attrs: convergent
 declare spir_func void @_Z7spv_nopv() #5
 
+; Function Attrs: convergent
+declare spir_func noundef nofpclass(nan inf) float @_Z11opencl_ceilf(float noundef nofpclass(nan inf)) #6
+
 attributes #0 = { alwaysinline convergent mustprogress norecurse nounwind "no-trapping-math"="true" "stack-protector-buffer-size"="8" }
 attributes #1 = { convergent noinline norecurse "hlsl.numthreads"="1,1,1" "hlsl.shader"="compute" "no-trapping-math"="true" "stack-protector-buffer-size"="8" }
 attributes #2 = { convergent nocallback nofree nosync nounwind willreturn memory(none) }
 attributes #3 = { convergent "no-trapping-math"="true" "spv.ext_instruction"="5056," "stack-protector-buffer-size"="8" }
 attributes #4 = { convergent "no-trapping-math"="true" "spv.ext_instruction"="13,GLSL.std.450" "stack-protector-buffer-size"="8" }
 attributes #5 = { convergent "approx-func-fp-math"="true" "no-infs-fp-math"="true" "no-nans-fp-math"="true" "no-signed-zeros-fp-math"="true" "no-trapping-math"="true" "spv.ext_instruction"="0," "stack-protector-buffer-size"="8" }
-attributes #6 = { convergent }
+attributes #6 = { convergent "approx-func-fp-math"="true" "no-infs-fp-math"="true" "no-nans-fp-math"="true" "no-signed-zeros-fp-math"="true" "no-trapping-math"="true" "spv.ext_instruction"="12,OpenCL.std" "stack-protector-buffer-size"="8" }
+attributes #7 = { convergent }
 
 !llvm.module.flags = !{!0, !1}
 !llvm.ident = !{!2}
